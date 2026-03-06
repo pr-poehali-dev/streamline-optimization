@@ -15,32 +15,36 @@ export function ServicesSection() {
           }`}
         >
           <h2 className="mb-2 font-sans text-5xl font-light tracking-tight text-foreground md:text-6xl lg:text-7xl">
-            Услуги
+            Тарифы
           </h2>
-          <p className="font-mono text-sm text-foreground/60 md:text-base">/ Наши компетенции</p>
+          <p className="font-mono text-sm text-foreground/60 md:text-base">/ Выберите подходящий план</p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-2 md:gap-x-16 md:gap-y-12 lg:gap-x-24">
           {[
             {
-              title: "Веб-разработка",
-              description: "Создание современных веб-приложений любой сложности",
+              title: "Старт",
+              description: "20 фотографий · 1 стиль · Базовое качество · Результат за 10 мин",
               direction: "top",
+              price: "299 ₽",
             },
             {
-              title: "UI/UX Дизайн",
-              description: "Проектирование удобных и красивых интерфейсов",
+              title: "Профи",
+              description: "100 фотографий · 5 стилей · HD качество · Приоритетная очередь",
               direction: "right",
+              price: "999 ₽",
             },
             {
-              title: "Мобильные приложения",
-              description: "Кроссплатформенная разработка для iOS и Android",
+              title: "Премиум",
+              description: "300 фотографий · Все стили · 4K · Мгновенный результат · Поддержка",
               direction: "left",
+              price: "2 490 ₽",
             },
             {
-              title: "Консалтинг",
-              description: "Техническая экспертиза и стратегическое планирование",
+              title: "Безлимит",
+              description: "Неограниченные генерации · API доступ · Белая метка · Персональный менеджер",
               direction: "bottom",
+              price: "от 9 990 ₽/мес",
             },
           ].map((service, i) => (
             <ServiceCard key={i} service={service} index={i} isVisible={isVisible} />
@@ -56,7 +60,7 @@ function ServiceCard({
   index,
   isVisible,
 }: {
-  service: { title: string; description: string; direction: string }
+  service: { title: string; description: string; direction: string; price: string }
   index: number
   isVisible: boolean
 }) {
@@ -89,7 +93,10 @@ function ServiceCard({
         <div className="h-px w-8 bg-foreground/30 transition-all duration-300 group-hover:w-12 group-hover:bg-foreground/50" />
         <span className="font-mono text-xs text-foreground/60">0{index + 1}</span>
       </div>
-      <h3 className="mb-2 font-sans text-2xl font-light text-foreground md:text-3xl">{service.title}</h3>
+      <div className="flex items-baseline gap-3 mb-2">
+        <h3 className="font-sans text-2xl font-light text-foreground md:text-3xl">{service.title}</h3>
+        <span className="font-mono text-sm text-foreground/60">{service.price}</span>
+      </div>
       <p className="max-w-sm text-sm leading-relaxed text-foreground/80 md:text-base">{service.description}</p>
     </div>
   )
