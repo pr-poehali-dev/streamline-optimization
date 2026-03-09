@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "POST without photos returns 400",
+      "method": "POST",
+      "path": "/",
+      "body": {"style": "business", "photoCount": 1, "photos": []},
+      "expectedStatus": 400
+    },
+    {
+      "name": "GET status without orderId returns 400",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 400
+    }
+  ]
+}

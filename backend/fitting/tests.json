@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET clothes list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "POST fitting without user photo returns 400",
+      "method": "POST",
+      "path": "/",
+      "body": {"clothesId": 1},
+      "expectedStatus": 400
+    }
+  ]
+}

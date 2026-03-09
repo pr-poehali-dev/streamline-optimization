@@ -247,6 +247,9 @@ export default function Index() {
         </div>
 
         <div className="flex items-center gap-3">
+          <MagneticButton variant="secondary" onClick={() => navigate("/fitting")}>
+            Примерочная
+          </MagneticButton>
           <MagneticButton variant="secondary" onClick={() => navigate("/login")}>
             Войти
           </MagneticButton>

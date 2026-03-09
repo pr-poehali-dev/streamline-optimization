@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "GET clothes list",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "POST without name returns 400",
+      "method": "POST",
+      "path": "/",
+      "body": {"imageUrl": "https://example.com/img.jpg"},
+      "expectedStatus": 400
+    }
+  ]
+}

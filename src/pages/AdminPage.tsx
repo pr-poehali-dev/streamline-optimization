@@ -1,7 +1,28 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import Icon from "@/components/ui/icon"
 import { GrainOverlay } from "@/components/grain-overlay"
+
+const ADMIN_CLOTHES_URL = "https://functions.poehali.dev/8577a62d-80d0-46fe-8227-97d25064cc52"
+
+interface ClothesItem {
+  id: number
+  name: string
+  description: string
+  imageUrl: string
+  productUrl: string
+  category: string
+  isActive: boolean
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 const MOCK_USERS = [
   { id: "1", email: "ivan@mail.ru", name: "Иван Иванов", balance: 250, orders: 3, registered: "01.03.2026" },
@@ -15,7 +36,7 @@ const MOCK_ORDERS = [
   { id: "ORD-003", user: "alex@yandex.ru", style: "Фэнтези", count: 50, status: "processing", date: "07.03.2026", cost: 100 },
 ]
 
-type Tab = "dashboard" | "users" | "orders" | "settings"
+type Tab = "dashboard" | "users" | "orders" | "fitting" | "settings"
 
 export default function AdminPage() {
   const navigate = useNavigate()
@@ -25,6 +46,63 @@ export default function AdminPage() {
   const [creditRate, setCreditRate] = useState("2")
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [creditAmount, setCreditAmount] = useState("")
+
+  // Fitting clothes state
+  const [clothesList, setClothesList] = useState<ClothesItem[]>([])
+  const [clothesLoading, setClothesLoading] = useState(false)
+  const [addingClothes, setAddingClothes] = useState(false)
+  const [newClothes, setNewClothes] = useState({ name: "", description: "", productUrl: "", category: "" })
+  const [newClothesImage, setNewClothesImage] = useState<File | null>(null)
+  const [newClothesPreview, setNewClothesPreview] = useState("")
+  const [savingClothes, setSavingClothes] = useState(false)
+  const clothesImageRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (activeTab === "fitting") loadClothes()
+  }, [activeTab])
+
+  const loadClothes = async () => {
+    setClothesLoading(true)
+    try {
+      const r = await fetch(ADMIN_CLOTHES_URL)
+      const d = await r.json()
+      setClothesList(d.clothes || [])
+    } catch { setClothesList([]) }
+    finally { setClothesLoading(false) }
+  }
+
+  const handleClothesImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setNewClothesImage(file)
+    setNewClothesPreview(URL.createObjectURL(file))
+  }
+
+  const handleAddClothes = async () => {
+    if (!newClothes.name || !newClothesImage) return
+    setSavingClothes(true)
+    try {
+      const imageBase64 = await fileToBase64(newClothesImage)
+      const resp = await fetch(ADMIN_CLOTHES_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...newClothes, imageBase64 }),
+      })
+      if (resp.ok) {
+        setAddingClothes(false)
+        setNewClothes({ name: "", description: "", productUrl: "", category: "" })
+        setNewClothesImage(null)
+        setNewClothesPreview("")
+        loadClothes()
+      }
+    } catch { /* ignore */ }
+    finally { setSavingClothes(false) }
+  }
+
+  const handleDeleteClothes = async (id: number) => {
+    await fetch(`${ADMIN_CLOTHES_URL}?id=${id}`, { method: "DELETE" })
+    loadClothes()
+  }
 
   return (
     <div className="min-h-screen bg-[#080810] text-white">
@@ -45,6 +123,7 @@ export default function AdminPage() {
               { id: "dashboard", label: "Дашборд", icon: "LayoutDashboard" },
               { id: "users", label: "Пользователи", icon: "Users" },
               { id: "orders", label: "Заказы", icon: "ShoppingBag" },
+              { id: "fitting", label: "Примерочная", icon: "Shirt" },
               { id: "settings", label: "Настройки", icon: "Settings" },
             ].map((item) => (
               <button
@@ -225,6 +304,147 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Fitting clothes management */}
+          {activeTab === "fitting" && (
+            <div>
+              <div className="mb-8 flex items-center justify-between">
+                <h1 className="font-sans text-2xl font-light text-white">Примерочная — каталог одежды</h1>
+                <button
+                  onClick={() => setAddingClothes(true)}
+                  className="flex items-center gap-2 rounded-xl bg-purple-600/80 px-4 py-2.5 font-mono text-xs text-white hover:bg-purple-600 transition-colors"
+                >
+                  <Icon name="Plus" size={14} />
+                  Добавить одежду
+                </button>
+              </div>
+
+              {/* Add form */}
+              {addingClothes && (
+                <div className="mb-8 rounded-2xl border border-purple-500/20 bg-purple-500/5 p-6">
+                  <h3 className="mb-6 font-sans text-base font-light text-white">Новый товар</h3>
+                  <div className="grid gap-6 sm:grid-cols-[140px_1fr]">
+                    <div>
+                      <div
+                        onClick={() => clothesImageRef.current?.click()}
+                        className="flex aspect-[3/4] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-white/20 bg-white/5 hover:border-white/40 transition-colors"
+                      >
+                        <input ref={clothesImageRef} type="file" accept="image/*" onChange={handleClothesImage} className="hidden" />
+                        {newClothesPreview ? (
+                          <img src={newClothesPreview} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="text-center">
+                            <Icon name="ImagePlus" size={24} className="mx-auto mb-2 text-white/20" />
+                            <p className="font-mono text-xs text-white/30">Фото</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="mb-1.5 block font-mono text-xs text-white/40">Название *</label>
+                        <input
+                          type="text"
+                          value={newClothes.name}
+                          onChange={(e) => setNewClothes((p) => ({ ...p, name: e.target.value }))}
+                          placeholder="Например: Белая рубашка Oxford"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 font-mono text-sm text-white placeholder:text-white/20 focus:border-purple-500/50 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block font-mono text-xs text-white/40">Описание</label>
+                        <input
+                          type="text"
+                          value={newClothes.description}
+                          onChange={(e) => setNewClothes((p) => ({ ...p, description: e.target.value }))}
+                          placeholder="Хлопок 100%, размеры S–XL"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 font-mono text-sm text-white placeholder:text-white/20 focus:border-purple-500/50 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block font-mono text-xs text-white/40">Категория</label>
+                        <input
+                          type="text"
+                          value={newClothes.category}
+                          onChange={(e) => setNewClothes((p) => ({ ...p, category: e.target.value }))}
+                          placeholder="Верх, Низ, Платья, Аксессуары..."
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 font-mono text-sm text-white placeholder:text-white/20 focus:border-purple-500/50 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block font-mono text-xs text-white/40">Ссылка на товар</label>
+                        <input
+                          type="url"
+                          value={newClothes.productUrl}
+                          onChange={(e) => setNewClothes((p) => ({ ...p, productUrl: e.target.value }))}
+                          placeholder="https://shop.example.com/product/123"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 font-mono text-sm text-white placeholder:text-white/20 focus:border-purple-500/50 focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={handleAddClothes}
+                          disabled={!newClothes.name || !newClothesImage || savingClothes}
+                          className={`rounded-lg px-5 py-2.5 font-mono text-xs text-white transition-colors ${
+                            newClothes.name && newClothesImage && !savingClothes
+                              ? "bg-purple-600 hover:bg-purple-500"
+                              : "bg-white/10 cursor-not-allowed text-white/30"
+                          }`}
+                        >
+                          {savingClothes ? (
+                            <span className="flex items-center gap-2"><Icon name="Loader2" size={12} className="animate-spin" />Сохраняем...</span>
+                          ) : "Сохранить"}
+                        </button>
+                        <button
+                          onClick={() => { setAddingClothes(false); setNewClothesImage(null); setNewClothesPreview("") }}
+                          className="rounded-lg border border-white/10 px-5 py-2.5 font-mono text-xs text-white/50 hover:border-white/20 hover:text-white/70 transition-colors"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {clothesLoading ? (
+                <div className="flex justify-center py-20">
+                  <Icon name="Loader2" size={24} className="animate-spin text-purple-400" />
+                </div>
+              ) : clothesList.length === 0 ? (
+                <div className="rounded-2xl border border-white/5 bg-white/3 p-12 text-center">
+                  <Icon name="Shirt" size={40} className="mx-auto mb-4 text-white/20" />
+                  <p className="font-mono text-sm text-white/40">Каталог пуст — добавьте первый товар</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {clothesList.map((item) => (
+                    <div key={item.id} className="group relative overflow-hidden rounded-2xl border border-white/8">
+                      <div className="aspect-[3/4] overflow-hidden bg-white/5">
+                        <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="p-3">
+                        <p className="font-sans text-xs font-medium text-white leading-tight">{item.name}</p>
+                        {item.category && <p className="mt-0.5 font-mono text-xs text-white/30">{item.category}</p>}
+                        {item.productUrl && (
+                          <a href={item.productUrl} target="_blank" rel="noopener noreferrer"
+                            className="mt-1 flex items-center gap-1 font-mono text-xs text-purple-400 hover:text-purple-300 transition-colors">
+                            <Icon name="ExternalLink" size={10} />Ссылка
+                          </a>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleDeleteClothes(item.id)}
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white/50 opacity-0 group-hover:opacity-100 hover:bg-red-600/80 hover:text-white transition-all"
+                      >
+                        <Icon name="Trash2" size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
